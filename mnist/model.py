@@ -39,29 +39,34 @@ def generator(z,y,train=True):
 # 判别器
 def discriminator(image,y,reuse=False):
 
-    # 因为真实数据和生成数据都要经过判别器，所以需要指定reuse是否可用
+    # 因为真实数据和生成数据都要经过判别器，所以需要指定reuse是否可用,当生成的图片进入当前判别器时，用原来真实数据的变量，来检验这个判别器是否是真的好
     # tf.get_variable_scope().reuse_variables() 允许共享当前节点下所有变量，当前节点是指当前的判别器下的所有变量
+
     if reuse:
         tf.get_variable_scope().reuse_variables()
+        print('get variables')
+        print(tf.get_variable_scope().reuse_variables())
 
     # 跟生成器一样，判别器也需要把约束条件串联起来,特征条件
     yb=tf.reshape(y,[BATCH_SIZE,1,1,10],name='yb')
     x=conv_cond_concat(image,yb,name='image_concat_y') # yb[64,1,1,10] image[64,28,28,1]
+
     # 卷积，激活，串联条件
     h1=lrelu(conv2d(x,11,name='d_conv2d1'),name='lrelu1')
     h1=conv_cond_concat(h1,yb,name='h1_concat_yb')
+
     h2=lrelu(batch_norm_layer(conv2d(h1,74,name='d_conv2d2'),
                               name='d_bn2'),name='lrelu2')
     # 这里[BATCH_SIZE,-1]表示先适应前面的大小，然后后面的自己再自适应
     h2=tf.reshape(h2,[BATCH_SIZE,-1],name='reshape_lrelu2_to_2d')
-    tf.concat([h2,y],1,name='lrelu2_concat_y')
+    h2=tf.concat([h2,y],1,name='lrelu2_concat_y')
 
     h3=lrelu(batch_norm_layer(fully_connected(h2,1024,name='d_fully_connected3'),
                               name='d_bn3'),name='lrelu3')
     h3=tf.concat([h3,y],1,name='lrelu3_concat_y')
 
     h4=fully_connected(h3,1,name='d_result_withouts_sigmoid')
-    #print(tf.nn.sigmoid(h4),h4)
+
     return tf.nn.sigmoid(h4,name='discriminator_result_with_sigmoid'),h4
 
 # 定义训练过程的采样函数,函数的作用是在训练过程中对生成器生成的图片进行采样，所以这个函数必须指定reuse可用

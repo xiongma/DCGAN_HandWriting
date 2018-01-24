@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.contrib.layers.python.layers import batch_norm as batch_norm
-import numpy as np
+
 # 偏执
 def bias(name,shape,bias_start=0.0,trainable=True):
     dtype=tf.float32
@@ -24,6 +24,7 @@ def fully_connected(value,output_shape,name='fully_connected',with_w=False):
     with tf.variable_scope(name): # 在这里加入variable_scope 方便以后使用权重和偏执
         # 定义的列由输出的shape决定
         # 生成网络开始输入的value是[64,110],可以理解为有110个输入神经元，1024个输出神经元,这里的64理解为图片的张数
+        # 这里实现了权值共享，每张图片共享同一组权值
         weights=weight('weights',[shape[1],output_shape],0.02)
         biases=bias('bias',[output_shape],0.0)
 
@@ -92,7 +93,8 @@ def batch_norm_layer(value,is_train=True,name='batch_norm'):
     with tf.variable_scope(name) as scope:
         if is_train:
             return batch_norm(value,decay=0.9,epsilon=1e-5,scale=True,
-                              is_training=is_train,updates_collections=None,scope=scope)
+                              is_training=is_train,
+                              updates_collections=None,scope=scope)
 
         else:
             return batch_norm(value,decay=0.9,epsilon=1e-5,scale=True,

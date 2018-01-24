@@ -1,16 +1,20 @@
-import os
+
+from mnist.ops import *
 from mnist.read_data import *
 from mnist.utils import *
-from mnist.ops import *
 from mnist.model import *
-from mnist.model import BATCH_SIZE
+
+CURRENT_DIR=os.getcwd()
+MODEL_DIR=CURRENT_DIR+'/model/'
+LOG_DIR=CURRENT_DIR+'/log/'
+IMAGE_DIR=CURRENT_DIR+'/image/'
 
 def train():
     # 设置global_step,用来记录训练过程中的step
     global_step=tf.Variable(0,name='global_step',trainable=False)
 
     # 训练过程中的日志保存文件
-    train_dir='/Users/maxiong/Workpace/Code/Python/GANS/model/'
+    #train_dir='/Users/maxiong/Workpace/Code/Python/GANS/model/'
 
     # 放置三个placeholder,y表示约束条件，images表示送入判别器的图片
     # z表示随机噪声
@@ -38,7 +42,8 @@ def train():
     d_loss=d_loss_real+d_loss_fake
 
     # 看输出的概率跟1差多少
-    g_loss=tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.ones_like(D_),logits=D_logits_))
+    g_loss=tf.reduce_mean(
+        tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.ones_like(D_),logits=D_logits_))
 
     # 记录数据
     z_sum=tf.summary.histogram('z',z)
@@ -49,7 +54,6 @@ def train():
     d_loss_real_sum=tf.summary.scalar('d_real_loss',d_loss_real)
     d_loss_fake_sum=tf.summary.scalar('d_loss_fake',d_loss_fake)
     d_loss_sum=tf.summary.scalar('d_loss',d_loss)
-
     g_loss_sum=tf.summary.scalar('g_loss',g_loss)
 
     # 合并节点
@@ -74,7 +78,7 @@ def train():
     # 开始进行保存
     sess=tf.Session()
     init=tf.initialize_all_variables()
-    summary_writer=tf.summary.FileWriter(train_dir,sess.graph)
+    summary_writer=tf.summary.FileWriter(LOG_DIR,sess.graph)
 
     # 开始加入数据
     # 这里加入约束条件的意义是在进行生成时，生成的是增加了约束条件的图片。在进行判别的时候，也是加入了相同的相同的约束条件
@@ -84,14 +88,14 @@ def train():
     # 开始加入噪音 np.random.uniform返回的是高斯分布的点,这些点在-1和1区间上
     sample_z=np.random.uniform(-1,1,size=(BATCH_SIZE,100))
 
-    # 取出64个示例标签
+    # 取出64个示例标签，这个是我们要生成图片的独热编码，里面的编码，就是我们想要生成的图片
     sample_labels=data_y[0:64]
 
     # 进行开始前的初始化
     sess.run(init)
 
     # 开始训练
-    for epoch in range(1):
+    for epoch in range(25):
         batch_idxs=1093
         for idx in range(batch_idxs):
             # 一次取出64张照片，这里返回的是一张图片的shape [64,28,28,1]
@@ -121,7 +125,6 @@ def train():
             # 计算训练过程中的损失，打印出来
             errD_fake=d_loss_fake.eval({z:batch_z,y:batch_labels},sess)
             errD_real=d_loss_real.eval({images:batch_image,y:batch_labels},sess)
-
             errG=g_loss.eval({z: batch_z, y: batch_labels},sess)
 
             if idx%20==0:
@@ -132,7 +135,7 @@ def train():
             if idx%100==0:
                 sample=sess.run(samples,feed_dict={z:sample_z,y:sample_labels})
 
-                samples_path='/Users/maxiong/Workpace/Code/Python/GANS/image/'
+                samples_path=IMAGE_DIR
 
                 save_images(sample, [8, 8],
                                 samples_path + 'test_%d_epoch_%d.png' % (epoch, idx))
@@ -140,7 +143,7 @@ def train():
                 print('save down')
 
             if idx%500==0:
-                checkpoint_path=os.path.join(train_dir, 'DCGAN_model.ckpt')
+                checkpoint_path=os.path.join(MODEL_DIR, 'DCGAN_model.ckpt')
                 saver.save(sess, checkpoint_path, global_step=idx + 1)
 
     sess.close()

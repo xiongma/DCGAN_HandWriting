@@ -1,15 +1,15 @@
-import tensorflow as tf
-import os
-
+from mnist.model import*
+from mnist.ops import *
 from mnist.read_data import *
 from mnist.utils import *
-from mnist.ops import *
-from mnist.model import *
-from model import BATCH_SIZE
+
+CURRENT_DIR=os.getcwd()
+TEST_IMAGE_DIR=CURRENT_DIR+'/test_image/'
+MODEL_DIR=CURRENT_DIR+'/model/'
 
 def eval():
-    test_dir='/Users/maxiong/Workpace/Code/Python/GANS/test_image/'
-    checkpoint_dir='/Users/maxiong/Workpace/Code/Python/GANS/model/'
+    #test_dir='/Users/maxiong/Workpace/Code/Python/GANS/test_image/'
+    checkpoint_dir=MODEL_DIR
 
     y=tf.placeholder(tf.float32,[BATCH_SIZE,10],name='y')
     z=tf.placeholder(tf.float32,[None,100],name='z')
@@ -42,7 +42,7 @@ def eval():
     test_sess=sess.run(G,feed_dict={z:sample_z,y:sample_labels})
 
     # 保存测试图片
-    save_images(test_sess,[8,8],test_dir+'test_%d.png'% 500)
+    save_images(test_sess,[8,8],TEST_IMAGE_DIR+'test_%d.png'% 500)
 
     sess.close()
 
